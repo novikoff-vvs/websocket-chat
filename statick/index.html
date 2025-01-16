@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #chat {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 20px auto;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        button {
+            width: 18%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+        .user {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .content {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+<h1>WebSocket Chat</h1>
+<div id="chat"></div>
+<input type="text" id="message" placeholder="Введите сообщение..." />
+<button onclick="sendMessage()">Отправить</button>
+
+<script>
+    let socket;
+    const userName = prompt("Введите ваше имя:", "Гость");
+
+    function connectWebSocket() {
+        socket = new WebSocket("ws://localhost:8080/ws");
+
+        socket.onopen = function() {
+            console.log("Соединение установлено!");
+            sendMessage( "Добро пожаловать в чат, " + userName + "!" );
+        };
+
+        socket.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                displayMessage(data.user, data.content);
+            } catch (e) {
+                console.error("Ошибка при парсинге сообщения:", e);
+            }
+        };
+
+        socket.onerror = function(error) {
+            console.error("Ошибка WebSocket:", error);
+        };
+
+        socket.onclose = function() {
+            console.log("Соединение закрыто.");
+        };
+    }
+
+
+    function sendMessage(message) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            const msg = message || document.getElementById("message").value;
+            const messageData = {
+                user: userName,
+                content: msg
+            };
+            socket.send(JSON.stringify(messageData));
+            document.getElementById("message").value = '';
+        }
+    }
+
+
+    function displayMessage(user, content) {
+        const chat = document.getElementById("chat");
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("message");
+
+        const userElement = document.createElement("span");
+        userElement.classList.add("user");
+        userElement.textContent = user + ":";
+
+        const contentElement = document.createElement("span");
+        contentElement.classList.add("content");
+        contentElement.textContent = content;
+
+        messageElement.appendChild(userElement);
+        messageElement.appendChild(contentElement);
+        chat.appendChild(messageElement);
+
+
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+
+    window.onload = function() {
+        connectWebSocket();
+    };
+</script>
+</body>
+</html>
